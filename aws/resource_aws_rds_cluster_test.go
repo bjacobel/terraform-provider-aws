@@ -833,6 +833,28 @@ func TestAccAWSRDSCluster_DeletionProtection(t *testing.T) {
 	})
 }
 
+func TestAccAWSRDSCluster_enableDataAPI(t *testing.T) {
+	var v rds.DBCluster
+
+	rInt := acctest.RandInt()
+	resourceName := "aws_rds_cluster.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterConfigWith_EnableDataAPI(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists(resourceName, &v),
+					resource.TestCheckResourceAttr(resourceName, "enable_data_api", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRDSCluster_EngineMode(t *testing.T) {
 	var dbCluster1, dbCluster2 rds.DBCluster
 
@@ -2068,6 +2090,7 @@ resource "aws_rds_cluster" "test" {
   master_username                 = "foo"
   master_password                 = "mustbeeightcharaters"
   db_cluster_parameter_group_name = "default.aurora5.6"
+  enable_data_api                 = true
   skip_final_snapshot             = true
 }
 `, n)
@@ -2239,6 +2262,7 @@ resource "aws_rds_cluster" "test" {
   cluster_identifier_prefix = "tf-test-"
   master_username           = "root"
   master_password           = "password"
+  enable_data_api           = true
   skip_final_snapshot       = true
 
   s3_import {
@@ -2447,6 +2471,28 @@ resource "aws_rds_cluster" "test" {
   master_password                     = "mustbeeightcharaters"
   iam_database_authentication_enabled = true
   skip_final_snapshot                 = true
+}
+`, n)
+}
+
+func testAccAWSClusterConfigWith_EnableDataAPI(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "test" {
+  cluster_identifier  = "tf-aurora-cluster-%d"
+  availability_zones  = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  database_name       = "mydb"
+  master_username     = "foo"
+  master_password     = "mustbeeightcharaters"
+  engine_mode         = "serverless"
+  enable_data_api     = true
+  skip_final_snapshot = true
+
+  scaling_configuration {
+    auto_pause               = true
+    max_capacity             = 16
+    min_capacity             = 1
+    seconds_until_auto_pause = 300
+  }
 }
 `, n)
 }
